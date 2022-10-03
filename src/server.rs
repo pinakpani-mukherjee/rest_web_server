@@ -23,18 +23,19 @@ impl Server {
                     match stream.read(&mut buffer) {
                         Ok(_) => {
                             println!("Received a request: {}", String::from_utf8_lossy(&buffer));
-                            match Request::try_from(&buffer[..]) {
-                                Ok(request) => {
-                                    let response = Response::new(
-                                        StatusCode::Ok,
-                                        Some(
-                                            "<h1>All I got was a lousy h1 tag???</h1>".to_string(),
-                                        ),
-                                    );
-                                    response.send(&mut stream);
+                            let response = match Request::try_from(&buffer[..]) {
+                                Ok(request) => Response::new(
+                                    StatusCode::Ok,
+                                    Some("<h1>All I got was a lousy h1 tag???</h1>".to_string()),
+                                ),
+                                Err(e) => {
+                                    println!("Failed to parse a request: {}", e);
+                                    Response::new(StatusCode::BadRequest, None)
                                 }
-                                Err(e) => println!("Failed to parse a request: {}", e),
                             };
+                            if let Err(e) = response.send(&mut stream) {
+                                println!("Failed to send response: {}", e);
+                            }
                         }
                         Err(e) => {
                             println!("Failed to read from connection: {}", e);
